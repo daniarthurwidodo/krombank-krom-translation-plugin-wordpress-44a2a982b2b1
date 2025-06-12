@@ -164,18 +164,24 @@ function krom_translation_activate() {
     // Initialize default settings
     add_option('krom_translation_settings', array(
         'default_language' => 'en',
-        'available_languages' => array('en'),
+        'available_languages' => array('en', 'id'),
     ));
     
-    // Create necessary directories
-    $upload_dir = wp_upload_dir();
-    $translation_dir = $upload_dir['basedir'] . '/krom-translations';
-    
-    if (!file_exists($translation_dir)) {
-        wp_mkdir_p($translation_dir);
-    }
+    // Ensure rewrite rules will be flushed
+    update_option('krom_flush_needed', 'yes');
 }
 register_activation_hook(__FILE__, 'krom_translation_activate');
+
+/**
+ * Check if rewrite rules need to be flushed
+ */
+function krom_check_flush_rules() {
+    if (get_option('krom_flush_needed') === 'yes') {
+        flush_rewrite_rules();
+        delete_option('krom_flush_needed');
+    }
+}
+add_action('wp_loaded', 'krom_check_flush_rules');
 
 /**
  * Plugin deactivation hook

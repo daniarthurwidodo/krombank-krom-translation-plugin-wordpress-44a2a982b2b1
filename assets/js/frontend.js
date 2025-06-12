@@ -12,12 +12,22 @@ function kromSwitchLanguage(lang) {
         document.cookie = "krom_language=" + lang + ";path=/";
     }
     
-    // Add language parameter to current URL
-    let currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('lang', lang);
+    // Get the current pathname
+    let path = window.location.pathname;
     
-    // Reload the page with the new language
-    window.location.href = currentUrl.toString();
+    // Remove any existing language prefix if present
+    path = path.replace(/^\/(?:en|id|es|fr|de|zh)\//, '/');
+    
+    // Add the new language prefix
+    let newPath = '/' + lang + path;
+    
+    // If we're at the site root with just a trailing slash
+    if (path === '/') {
+        newPath = '/' + lang + '/';
+    }
+    
+    // Navigate to the new URL
+    window.location.href = newPath;
 }
 
 // Initialize translation on document ready

@@ -16,10 +16,15 @@ if (!defined('ABSPATH')) {
 function krom_get_current_language() {
     $settings = get_option('krom_translation_settings');
     $default = isset($settings['default_language']) ? $settings['default_language'] : 'en';
+    $available = isset($settings['available_languages']) ? $settings['available_languages'] : array('en');
     
-    // Check if language set in URL parameter
-    if (isset($_GET['lang']) && krom_is_valid_language($_GET['lang'])) {
-        return sanitize_text_field($_GET['lang']);
+    // Check if language is in the URL path
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+    $path_parts = explode('/', trim($request_uri, '/'));
+    
+    // If first part of URL is a valid language code
+    if (!empty($path_parts[0]) && in_array($path_parts[0], $available)) {
+        return $path_parts[0];
     }
     
     // Check if language set in session
