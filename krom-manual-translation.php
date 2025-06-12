@@ -161,10 +161,10 @@ function krom_language_switcher_shortcode($atts) {
  */
 function krom_translation_activate() {
     // Create necessary database tables if needed
-    // Initialize default settings
+    // Initialize default settings with Indonesian as default
     add_option('krom_translation_settings', array(
-        'default_language' => 'en',
-        'available_languages' => array('en', 'id'),
+        'default_language' => 'id', // Changed from 'en' to 'id'
+        'available_languages' => array('id', 'en'), // Indonesian first
     ));
     
     // Ensure rewrite rules will be flushed

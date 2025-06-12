@@ -1,6 +1,6 @@
 <?php
 /**
- * Frontend functionality for Krom Manual Translation
+ * Frontend functionality for Krom Manual Translation plugin
  */
 
 // Exit if accessed directly
@@ -9,10 +9,149 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Very early language detection - before anything else
+ */
+function krom_very_early_language_detection() {
+    // Force language detection immediately
+    $current_lang = krom_get_current_language();
+    
+    // Store in global for immediate access
+    $GLOBALS['krom_current_language'] = $current_lang;
+    
+    // Debug logging
+    error_log('Krom Translation: Very early detection - Language is: ' . $current_lang);
+}
+// Hook this to the earliest possible action
+add_action('muplugins_loaded', 'krom_very_early_language_detection', 1);
+add_action('plugins_loaded', 'krom_very_early_language_detection', 1);
+
+/**
+ * Initialize language early
+ */
+function krom_init_language() {
+    // Start session if needed
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Ensure language is detected
+    $current_lang = krom_get_current_language();
+    
+    // Set current language in a global for easy access
+    $GLOBALS['krom_current_language'] = $current_lang;
+    
+    // Debug logging
+    error_log('Krom Translation: Init language - Current language: ' . $current_lang);
+}
+add_action('init', 'krom_init_language', 1);
+
+/**
+ * Filter menu items to show translated versions
+ */
+function krom_filter_nav_menu_objects($items, $args) {
+    // Debug: Add error logging
+    error_log('Krom Translation: Filter called with ' . count($items) . ' items');
+    
+    $current_lang = krom_get_current_language();
+    error_log('Krom Translation: Current language is ' . $current_lang);
+    
+    $settings = get_option('krom_translation_settings', array(
+        'default_language' => 'id',
+    ));
+    $default_lang = $settings['default_language'];
+    
+    // Debug log the default language
+    error_log('Krom Translation: Default language is ' . $default_lang);
+    
+    // Only filter if not default language
+    if ($current_lang === $default_lang) {
+        error_log('Krom Translation: Current language is default, no translation needed');
+        return $items;
+    }
+    
+    $menu_translations = get_option('krom_menu_translations', array());
+    error_log('Krom Translation: Found ' . count($menu_translations) . ' menu translations');
+    
+    foreach ($items as $item) {
+        if (isset($menu_translations[$item->ID][$current_lang])) {
+            $translation = $menu_translations[$item->ID][$current_lang];
+            
+            error_log('Krom Translation: Found translation for item ' . $item->ID . ': ' . print_r($translation, true));
+            
+            // Replace title if translation exists
+            if (!empty($translation['title'])) {
+                $original_title = $item->title;
+                $item->title = $translation['title'];
+                error_log('Krom Translation: Changed title from "' . $original_title . '" to "' . $item->title . '"');
+            }
+            
+            // Replace attr_title if translation exists
+            if (!empty($translation['attr_title'])) {
+                $item->attr_title = $translation['attr_title'];
+            }
+        } else {
+            error_log('Krom Translation: No translation found for item ' . $item->ID . ' (' . $item->title . ')');
+        }
+    }
+    
+    return $items;
+}
+
+/**
+ * Force menu translation on wp_loaded
+ */
+function krom_force_menu_translation() {
+    // Ensure our menu filter is properly registered
+    remove_filter('wp_nav_menu_objects', 'krom_filter_nav_menu_objects');
+    add_filter('wp_nav_menu_objects', 'krom_filter_nav_menu_objects', 5, 2);
+    
+    error_log('Krom Translation: Forced menu translation filter registration');
+}
+add_action('wp_loaded', 'krom_force_menu_translation');
+
+// Also register the filter directly
+add_filter('wp_nav_menu_objects', 'krom_filter_nav_menu_objects', 5, 2);
+
+/**
+ * Also add it to walker_nav_menu_start_el for additional coverage
+ */
+function krom_filter_nav_menu_start_el($item_output, $item, $depth, $args) {
+    $current_lang = krom_get_current_language();
+    $settings = get_option('krom_translation_settings', array(
+        'default_language' => 'id',
+    ));
+    $default_lang = $settings['default_language'];
+    
+    // Only filter if not default language
+    if ($current_lang !== $default_lang) {
+        $menu_translations = get_option('krom_menu_translations', array());
+        
+        if (isset($menu_translations[$item->ID][$current_lang])) {
+            $translation = $menu_translations[$item->ID][$current_lang];
+            
+            if (!empty($translation['title'])) {
+                // Replace the title in the output
+                $item_output = str_replace('>' . $item->title . '<', '>' . $translation['title'] . '<', $item_output);
+            }
+        }
+    }
+    
+    return $item_output;
+}
+add_filter('walker_nav_menu_start_el', 'krom_filter_nav_menu_start_el', 10, 4);
+
+/**
  * Register frontend scripts and styles
  */
 function krom_register_frontend_assets() {
-    // Register styles
+    wp_register_script(
+        'krom-translation-frontend',
+        KROM_TRANS_URL . 'assets/js/frontend.js',
+        array('jquery'),
+        KROM_TRANS_VERSION,
+        true
+    );
+    
     wp_register_style(
         'krom-translation-frontend',
         KROM_TRANS_URL . 'assets/css/frontend.css',
@@ -20,174 +159,96 @@ function krom_register_frontend_assets() {
         KROM_TRANS_VERSION
     );
     
-    // Register scripts
-    wp_register_script(
+    // Localize script with plugin data
+    wp_localize_script(
         'krom-translation-frontend',
-        KROM_TRANS_URL . 'assets/js/frontend.js',
-        array(),
-        KROM_TRANS_VERSION,
-        true
+        'kromTranslation',
+        array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'cookiePath' => COOKIEPATH,
+            'cookieDomain' => COOKIE_DOMAIN,
+            'nonce' => wp_create_nonce('krom_translation_nonce'),
+            'currentLang' => krom_get_current_language(),
+            'homeUrl' => home_url('/'),
+        )
     );
 }
 add_action('wp_enqueue_scripts', 'krom_register_frontend_assets');
 
 /**
- * Initialize session for language storage
+ * Ajax handler for switching language
  */
-function krom_init_session() {
-    if (session_status() == PHP_SESSION_NONE) {
-        session_start();
+function krom_ajax_switch_language() {
+    // Verify nonce
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'krom_translation_nonce')) {
+        wp_send_json_error(array('message' => 'Invalid nonce'));
     }
     
-    // Check for language cookie and set session
-    if (isset($_COOKIE['krom_language']) && !isset($_SESSION['krom_language'])) {
-        $_SESSION['krom_language'] = $_COOKIE['krom_language'];
+    if (isset($_POST['language'])) {
+        $language = sanitize_text_field($_POST['language']);
+        
+        // Set the language using our function
+        if (krom_set_current_language($language)) {
+            // Get the redirect URL
+            $redirect_url = krom_get_language_url($language);
+            
+            wp_send_json_success(array(
+                'language' => $language,
+                'message' => 'Language switched successfully',
+                'redirect_url' => $redirect_url
+            ));
+        } else {
+            wp_send_json_error(array('message' => 'Invalid language'));
+        }
     }
+    
+    wp_send_json_error(array('message' => 'No language specified'));
 }
-add_action('init', 'krom_init_session');
+add_action('wp_ajax_krom_switch_language', 'krom_ajax_switch_language');
+add_action('wp_ajax_nopriv_krom_switch_language', 'krom_ajax_switch_language');
 
 /**
- * Add rewrite rules for language paths
+ * Add rewrite rules for language URLs
  */
-function krom_add_language_rewrite_rules() {
+function krom_add_rewrite_rules() {
     $settings = get_option('krom_translation_settings');
-    $languages = isset($settings['available_languages']) ? $settings['available_languages'] : array('en');
+    $available_languages = isset($settings['available_languages']) ? $settings['available_languages'] : array('id', 'en');
+    $default_lang = isset($settings['default_language']) ? $settings['default_language'] : 'id';
     
-    // Add rules for each language
-    foreach ($languages as $lang) {
-        // Rule for homepage - modified to work properly
-        add_rewrite_rule(
-            '^' . $lang . '/?$',
-            'index.php?lang=' . $lang,
-            'top'
-        );
-        
-        // Rule for other pages
-        add_rewrite_rule(
-            '^' . $lang . '/(.+)/?$',
-            'index.php?lang=' . $lang . '&pagename=$matches[1]',
-            'top'
-        );
-        
-        // Rules for post type archives and taxonomies
-        add_rewrite_rule(
-            '^' . $lang . '/category/(.+)/?$',
-            'index.php?lang=' . $lang . '&category_name=$matches[1]',
-            'top'
-        );
-        
-        add_rewrite_rule(
-            '^' . $lang . '/tag/(.+)/?$',
-            'index.php?lang=' . $lang . '&tag=$matches[1]',
-            'top'
-        );
-        
-        // Rule for single posts with numeric IDs
-        add_rewrite_rule(
-            '^' . $lang . '/([0-9]+)/?$',
-            'index.php?lang=' . $lang . '&p=$matches[1]',
-            'top'
-        );
+    foreach ($available_languages as $lang) {
+        if ($lang !== $default_lang) {
+            add_rewrite_rule('^' . $lang . '/?$', 'index.php?krom_lang=' . $lang, 'top');
+            add_rewrite_rule('^' . $lang . '/(.*)$', 'index.php?krom_lang=' . $lang . '&krom_path=$matches[1]', 'top');
+        }
     }
 }
-add_action('init', 'krom_add_language_rewrite_rules');
+add_action('init', 'krom_add_rewrite_rules');
 
 /**
- * Register the language query var
+ * Add query vars for language detection
  */
-function krom_register_query_vars($vars) {
-    $vars[] = 'lang';
+function krom_query_vars($vars) {
+    $vars[] = 'krom_lang';
+    $vars[] = 'krom_path';
     return $vars;
 }
-add_filter('query_vars', 'krom_register_query_vars');
+add_filter('query_vars', 'krom_query_vars');
 
 /**
- * Flush rewrite rules on plugin activation
+ * Handle language detection from query vars
  */
-function krom_flush_rewrite_rules() {
-    krom_add_language_rewrite_rules();
-    flush_rewrite_rules();
-}
-
-/**
- * Add language prefix to permalinks
- */
-function krom_add_language_to_permalink($permalink, $post, $leavename) {
-    $lang = krom_get_current_language();
-    
-    // Don't modify admin URLs
-    if (is_admin()) {
-        return $permalink;
-    }
-    
-    // Don't add language code if it's already there
-    if (preg_match('/^\/(' . implode('|', krom_get_available_languages()) . ')\//', $permalink)) {
-        return $permalink;
-    }
-    
-    // Add language code to the permalink
-    $permalink = preg_replace('/^(https?:\/\/[^\/]*)(\/.*)$/', '$1/' . $lang . '$2', $permalink);
-    
-    return $permalink;
-}
-add_filter('post_link', 'krom_add_language_to_permalink', 10, 3);
-add_filter('page_link', 'krom_add_language_to_permalink', 10, 3);
-
-/**
- * Modify the home URL to include the language
- */
-function krom_add_language_to_home_url($url) {
-    if (is_admin()) {
-        return $url;
-    }
-    
-    $lang = krom_get_current_language();
-    
-    // Don't modify if already has language code
-    if (preg_match('/\/' . implode('\/', krom_get_available_languages()) . '\/?$/', $url)) {
-        return $url;
-    }
-    
-    // Add trailing slash if needed
-    if (substr($url, -1) !== '/') {
-        $url .= '/';
-    }
-    
-    // Add language code
-    $url .= $lang . '/';
-    
-    return $url;
-}
-add_filter('home_url', 'krom_add_language_to_home_url');
-
-/**
- * Helper function to get available languages
- */
-function krom_get_available_languages() {
-    $settings = get_option('krom_translation_settings');
-    return isset($settings['available_languages']) ? $settings['available_languages'] : array('en');
-}
-
-/**
- * Set the current language from URL at pre_get_posts stage
- */
-function krom_set_language_from_request($query) {
-    // Only modify main query
-    if (!$query->is_main_query()) {
-        return;
-    }
-    
-    // Get language from URL
-    $lang = get_query_var('lang');
-    
-    if (!empty($lang)) {
-        // Store in session
-        if (session_status() == PHP_SESSION_ACTIVE) {
-            $_SESSION['krom_language'] = $lang;
-        }
+function krom_parse_request($wp) {
+    if (isset($wp->query_vars['krom_lang'])) {
+        $language = sanitize_text_field($wp->query_vars['krom_lang']);
+        krom_set_current_language($language);
         
-        // Set cookie for longer persistence
-        setcookie('krom_language', $lang, time() + (86400 * 30), '/');
+        error_log('Krom Translation: Parse request - Set language to: ' . $language);
+        
+        // Handle the path redirection if needed
+        if (isset($wp->query_vars['krom_path'])) {
+            $path = sanitize_text_field($wp->query_vars['krom_path']);
+            // You might want to handle this differently based on your needs
+        }
     }
 }
-add_action('pre_get_posts', 'krom_set_language_from_request');
+add_action('parse_request', 'krom_parse_request');
