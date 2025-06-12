@@ -1,44 +1,41 @@
-# KROM Manual Translation Plugin - README
+# KROM Manual Translation Plugin
 
 ## Description
 
-The KROM Manual Translation Plugin provides a simple, manual translation system for WordPress sites. It allows you to add languages, create translations for specific texts, and display a language switcher on your site.
+The KROM Manual Translation Plugin provides a simple yet powerful manual translation system for WordPress sites. It allows site administrators to add languages, create translations for specific text strings, and display a language switcher on their site. No automated translation services are used - you have complete control over all translated content.
 
 ---
 
 ## Installation
 
-1. Download the plugin zip file.
-2. In your WordPress admin area, go to **Plugins > Add New**.
-3. Click **Upload Plugin** and select the zip file.
-4. Activate the plugin after installation.
+1. Upload the `krom-manual-translation` folder to the `/wp-content/plugins/` directory
+2. Activate the plugin through the 'Plugins' menu in WordPress
+3. Configure languages and translations through the "Krom Translation" admin menu
 
 ---
 
-## Setup and Usage
+## Setup and Configuration
 
-### 1. Managing Languages
+### Managing Languages
 
-1. Go to the WordPress admin area and find **KROM Translations** in the menu.
-2. Under the **Manage Languages** section:
-   - Enter the language code (e.g., `en`, `id`, `fr`).
-   - Enter the language name (e.g., `English`, `Indonesian`, `French`).
-   - Click **Add Language** to save the language.
+1. Go to **Krom Translation > Settings** in your WordPress admin area
+2. Set your default language (e.g., English)
+3. Select which languages you want to make available on your site
+4. Save your settings
 
-### 2. Adding Translations
+### Adding Translations
 
-1. In the **Add New Translation** section:
-   - Select the target language from the dropdown.
-   - Enter the original text (in your default language).
-   - Enter the translation for the selected language.
-   - Click **Add Translation** to save the translation.
-2. View your existing translations organized by language in the **Existing Translations** section.
+1. Navigate to **Krom Translation > Translations** 
+2. Add new text items by providing:
+   - A text ID/key (or leave empty for auto-hashing)
+   - The text content in each configured language
+3. Click "Save Translations" to update the translation database
 
-### 3. Using the Language Switcher
+### Using the Language Switcher
 
-You can display the language switcher on your site using one of the following methods:
+Add a language switcher to your site using one of these methods:
 
-#### Option 1: Shortcode
+#### Shortcode
 
 Add the language switcher anywhere in your content using the shortcode:
 
@@ -46,22 +43,19 @@ Add the language switcher anywhere in your content using the shortcode:
 [krom_language_switcher class="custom-class"]
 ```
 
-You can add a CSS class to style the switcher:
+You can add a CSS class to style the switcher.
 
-#### Option 2: Template Function
+#### Template Function
 
 Add the language switcher in your theme files (header.php, footer.php, etc.):
 
-#### Option 3: Widget
+```php
+<?php krom_language_switcher(['class' => 'custom-class']); ?>
+```
+
+#### Widget
 
 Use the KROM Language Switcher widget in any widget area through the WordPress Customizer or **Appearance > Widgets**.
-
-### 4. Translating Content
-
-To ensure text is translated:
-
-For static text in your theme or plugins, use:
-For user-entered content, the plugin will automatically look for and translate any content that matches entries in your translations database.
 
 ---
 
@@ -79,6 +73,16 @@ For user-entered content, the plugin will automatically look for and translate a
 ## Styling the Language Switcher
 
 The language switcher has the following HTML structure:
+
+```html
+<div class="krom-language-switcher">
+  <ul>
+    <li class="active"><a href="?lang=en">English</a></li>
+    <li><a href="?lang=fr">French</a></li>
+    <li><a href="?lang=id">Indonesian</a></li>
+  </ul>
+</div>
+```
 
 You can add custom CSS to style this according to your site's design.
 
