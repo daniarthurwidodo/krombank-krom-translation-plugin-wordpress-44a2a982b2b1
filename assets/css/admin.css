@@ -1,0 +1,19 @@
+/* Admin specific styles can be added here */
+.krom-admin-header {
+    margin-bottom: 20px;
+}
+
+.language-name-edit {
+    width: 100%;
+    max-width: 200px;
+}
+
+.row-actions {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.button-secondary, .button-primary {
+    margin: 0 2px;
+}

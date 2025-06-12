@@ -1,0 +1,38 @@
+.krom-language-switcher {
+    transition: opacity 0.3s;
+}
+
+.krom-language-switcher.switching {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.krom-language-switcher ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 1rem;
+}
+
+.krom-language-switcher li {
+    margin-right: 10px;
+}
+
+.krom-language-switcher li.active a {
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+.krom-language-switcher ul li a{
+   color: white;
+}
+
+.krom-language-switcher-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.header-is-fixed ul li a {
+    color: #6a38d3;
+}
