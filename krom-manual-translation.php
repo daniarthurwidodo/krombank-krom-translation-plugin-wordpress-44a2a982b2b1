@@ -37,6 +37,7 @@ function krom_manual_translation_init() {
     
     // Register shortcodes
     add_shortcode('krom_translate', 'krom_translation_shortcode');
+    add_shortcode('krom_language_switcher', 'krom_language_switcher_shortcode');
 }
 
 add_action('plugins_loaded', 'krom_manual_translation_init');
@@ -71,6 +72,92 @@ function krom_translation_shortcode($atts, $content = null) {
     $translated = krom_get_translation($content, $lang, $atts['id']);
     
     return $translated;
+}
+
+/**
+ * Shortcode function for language switcher
+ * 
+ * @param array $atts Shortcode attributes
+ * @return string Language switcher HTML
+ */
+function krom_language_switcher_shortcode($atts) {
+    // Extract attributes
+    $atts = shortcode_atts(
+        array(
+            'style' => 'dropdown', // dropdown, list, flags
+            'show_names' => 'true', // show language names
+        ),
+        $atts,
+        'krom_language_switcher'
+    );
+    
+    // Get available languages
+    $settings = get_option('krom_translation_settings');
+    $languages = isset($settings['available_languages']) ? $settings['available_languages'] : array('en');
+    $current_lang = krom_get_current_language();
+    
+    // Language display names (you can expand this list)
+    $lang_names = array(
+        'en' => 'English',
+        'es' => 'Español',
+        'fr' => 'Français',
+        'de' => 'Deutsch',
+        'id' => 'Indonesia',
+        'zh' => '中文',
+    );
+    
+    // Build the language switcher based on style
+    $output = '<div class="krom-language-switcher krom-style-' . esc_attr($atts['style']) . '">';
+    
+    switch($atts['style']) {
+        case 'dropdown':
+            $output .= '<select class="krom-language-select" onchange="kromSwitchLanguage(this.value)">';
+            foreach($languages as $lang) {
+                $selected = ($lang == $current_lang) ? 'selected' : '';
+                $name = isset($lang_names[$lang]) ? $lang_names[$lang] : $lang;
+                $output .= '<option value="' . esc_attr($lang) . '" ' . $selected . '>' . esc_html($name) . '</option>';
+            }
+            $output .= '</select>';
+            break;
+            
+        case 'flags':
+            $output .= '<ul class="krom-language-flags">';
+            foreach($languages as $lang) {
+                $active = ($lang == $current_lang) ? 'krom-lang-active' : '';
+                $name = isset($lang_names[$lang]) ? $lang_names[$lang] : $lang;
+                $output .= '<li class="' . esc_attr($active) . '">';
+                $output .= '<a href="#" onclick="kromSwitchLanguage(\'' . esc_attr($lang) . '\'); return false;">';
+                $output .= '<img src="' . KROM_TRANS_URL . 'assets/images/flags/' . esc_attr($lang) . '.png" alt="' . esc_attr($name) . '">';
+                if($atts['show_names'] === 'true') {
+                    $output .= ' <span>' . esc_html($name) . '</span>';
+                }
+                $output .= '</a></li>';
+            }
+            $output .= '</ul>';
+            break;
+            
+        case 'list':
+        default:
+            $output .= '<ul class="krom-language-list">';
+            foreach($languages as $lang) {
+                $active = ($lang == $current_lang) ? 'krom-lang-active' : '';
+                $name = isset($lang_names[$lang]) ? $lang_names[$lang] : $lang;
+                $output .= '<li class="' . esc_attr($active) . '">';
+                $output .= '<a href="#" onclick="kromSwitchLanguage(\'' . esc_attr($lang) . '\'); return false;">';
+                $output .= esc_html($name);
+                $output .= '</a></li>';
+            }
+            $output .= '</ul>';
+            break;
+    }
+    
+    $output .= '</div>';
+    
+    // Add necessary JavaScript
+    wp_enqueue_script('krom-translation-frontend');
+    wp_enqueue_style('krom-translation-frontend');
+    
+    return $output;
 }
 
 /**
