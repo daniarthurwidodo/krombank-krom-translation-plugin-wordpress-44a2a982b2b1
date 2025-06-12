@@ -1,12 +1,14 @@
 {
-  "id": {
-    "home": {
-      "Simulasi Perhitungan Bunga": "Simulasi Perhitungan Bunga"
-    },
-    "en": {
-      "home": {
-        "Simulasi Perhitungan Bunga": "Interest Calculation Simulation"
-      }
-    }
+  "welcome": {
+    "en": "Welcome to our website",
+    "id": "Selamat datang di situs kami"
+  },
+  "about_us": {
+    "en": "About Us",
+    "id": "Tentang Kami"
+  },
+  "contact": {
+    "en": "Contact Us",
+    "id": "Hubungi Kami"
   }
 }

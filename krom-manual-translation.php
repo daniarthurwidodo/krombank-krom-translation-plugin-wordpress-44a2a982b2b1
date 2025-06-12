@@ -99,11 +99,7 @@ function krom_language_switcher_shortcode($atts) {
     // Language display names (you can expand this list)
     $lang_names = array(
         'en' => 'English',
-        'es' => 'Español',
-        'fr' => 'Français',
-        'de' => 'Deutsch',
-        'id' => 'Indonesia',
-        'zh' => '中文',
+        'id' => 'Indonesia',  
     );
     
     // Build the language switcher based on style

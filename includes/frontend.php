@@ -35,7 +35,7 @@ add_action('wp_enqueue_scripts', 'krom_register_frontend_assets');
  * Initialize session for language storage
  */
 function krom_init_session() {
-    if (!session_id()) {
+    if (session_status() == PHP_SESSION_NONE) {
         session_start();
     }
     

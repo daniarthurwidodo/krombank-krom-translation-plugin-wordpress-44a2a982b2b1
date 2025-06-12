@@ -23,7 +23,7 @@ function krom_get_current_language() {
     }
     
     // Check if language set in session
-    if (isset($_SESSION['krom_language'])) {
+    if (session_status() == PHP_SESSION_ACTIVE && isset($_SESSION['krom_language'])) {
         return $_SESSION['krom_language'];
     }
     

@@ -4,12 +4,6 @@
 .krom-language-switcher {
     margin: 10px 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-    transition: opacity 0.3s;
-}
-
-.krom-language-switcher.switching {
-    opacity: 0.5;
-    pointer-events: none;
 }
 
 /* Language switcher - dropdown style */
@@ -64,34 +58,4 @@
 .krom-lang-active a {
     background-color: #f0f0f0;
     font-weight: bold;
-}
-
-.krom-language-switcher ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    gap: 1rem;
-}
-
-.krom-language-switcher li {
-    margin-right: 10px;
-}
-
-.krom-language-switcher li.active a {
-    font-weight: bold;
-    text-decoration: underline;
-}
-
-.krom-language-switcher ul li a {
-    color: white;
-}
-
-.krom-language-switcher-wrapper {
-    display: flex;
-    align-items: center;
-}
-
-.header-is-fixed ul li a {
-    color: #6a38d3;
 }
