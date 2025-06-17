@@ -1,0 +1,4 @@
+[✓] add switcher button
+[] style switcher button
+[] add wyswyg metabox for posts
+[] switch posts according to language
