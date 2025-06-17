@@ -199,3 +199,15 @@ function krom_redirect_root_to_language() {
     }
 }
 add_action('template_redirect', 'krom_redirect_root_to_language', 1);
+
+/**
+ * Get current language from URL - For debugging only
+ */
+function krom_debug_get_current_language() {
+    $current_lang = krom_get_current_language();
+    
+    echo '<div style="position: fixed; bottom: 10px; right: 10px; background: #fff; border: 1px solid #ccc; padding: 10px; z-index: 9999;">';
+    echo 'Current Language: ' . $current_lang;
+    echo '</div>';
+}
+add_action('wp_footer', 'krom_debug_get_current_language');
