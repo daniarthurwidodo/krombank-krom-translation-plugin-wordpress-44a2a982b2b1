@@ -43,6 +43,9 @@ define('KROM_TRANSLATION_DEFAULT_LANG', 'id');
 // Include language switcher functionality
 require_once KROM_TRANSLATION_PATH . 'includes/language-switcher.php';
 
+// Include post translation metaboxes
+require_once KROM_TRANSLATION_PATH . 'includes/post-translation.php';
+
 /**
  * Initialize the plugin
  */
@@ -69,4 +72,15 @@ function krom_translation_enqueue_styles() {
         '1.0.0'
     );
     wp_enqueue_style('krom-language-switcher');
+    
+    // Add admin styles
+    if (is_admin()) {
+        wp_register_style(
+            'krom-admin-styles', 
+            KROM_TRANSLATION_URL . 'assets/css/admin.css',
+            array(),
+            '1.0.0'
+        );
+        wp_enqueue_style('krom-admin-styles');
+    }
 }
