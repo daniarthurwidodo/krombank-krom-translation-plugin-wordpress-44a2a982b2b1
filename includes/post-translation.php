@@ -23,7 +23,11 @@ function krom_register_translation_metaboxes() {
             $post_type,
             'normal',
             'high',
-            array('lang' => 'en')
+            array(
+                'lang' => 'en',
+                '__block_editor_compatible_meta_box' => false, 
+                '__back_compat_meta_box' => true
+            )
         );
         
         add_meta_box(
@@ -33,7 +37,11 @@ function krom_register_translation_metaboxes() {
             $post_type,
             'normal',
             'high',
-            array('lang' => 'en')
+            array(
+                'lang' => 'en',
+                '__block_editor_compatible_meta_box' => false, 
+                '__back_compat_meta_box' => true
+            )
         );
     }
 }
@@ -62,24 +70,20 @@ function krom_content_translation_callback($post, $metabox) {
     $lang = $metabox['args']['lang'];
     $content_translation = get_post_meta($post->ID, '_krom_content_' . $lang, true);
     
-    // For debugging - show the current saved value
-    echo '<!-- Current saved value for ' . $lang . ': ' . strlen($content_translation) . ' chars -->';
-    
-    // Initialize WordPress editor with minimal interface
+    // Initialize WordPress editor with standard settings
     wp_editor(
         $content_translation,
-        'krom_content_translation_' . $lang, // Editor ID must be unique
+        'krom_content_translation_' . $lang,
         array(
             'media_buttons' => true,
-            'textarea_name' => 'krom_content_translation_' . $lang, // This is what gets submitted in the form
+            'textarea_name' => 'krom_content_translation_' . $lang,
             'textarea_rows' => 20,
-            'editor_css' => '',
-            'tinymce' => array(
-                'toolbar1' => 'formatselect,bold,italic,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,unlink,wp_more,fullscreen,wp_adv',
-                'toolbar2' => 'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo',
-            ),
+            'teeny' => false,
+            'dfw' => true,
+            'tinymce' => true,
             'quicktags' => true,
-            'drag_drop_upload' => true
+            'drag_drop_upload' => true,
+            'editor_height' => 300
         )
     );
 }
@@ -286,7 +290,7 @@ function krom_add_translation_metabox_styles() {
     echo '<style>
         /* English metaboxes */
         #krom_title_translation_en, #krom_content_translation_en {
-            background-color: #f7fafd;
+            background-color: #fff;
             border-left: 5px solid #0073aa;
             margin-top: 15px;
         }
@@ -313,12 +317,157 @@ function krom_add_translation_metabox_styles() {
             border-radius: 3px;
             box-shadow: inset 0 1px 2px rgba(0,0,0,.07);
         }
-        .wp-editor-container {
-            border: 1px solid #ddd !important;
+        
+        /* Reset any custom borders on the editor */
+        #wp-krom_content_translation_en-wrap {
+            background: #fff;
+        }
+        #wp-krom_content_translation_en-wrap .wp-editor-tools {
+            background: #f5f5f5;
+            border: 1px solid #e2e4e7;
+            border-bottom: 0;
+        }
+        #wp-krom_content_translation_en-wrap .mce-container.mce-panel {
+            border-color: #e2e4e7;
+        }
+        
+        /* Hide metabox move handles */
+        .postbox .handle-order-higher,
+        .postbox .handle-order-lower {
+            display: none !important;
+        }
+        
+        /* Make the metabox header less clickable-looking */
+        .postbox .handlediv {
+            visibility: hidden;
         }
     </style>';
+    
+    // Add JS to prevent metabox dragging and ensure editor height
+    echo '<script type="text/javascript">
+        jQuery(document).ready(function($) {
+            // Make translation metaboxes non-sortable
+            $(".meta-box-sortables").sortable({
+                items: ".postbox:not(#krom_title_translation_en, #krom_content_translation_en)"
+            });
+            
+            // Ensure editor height matches default editor
+            setTimeout(function() {
+                if (typeof tinymce !== "undefined") {
+                    var editor = tinymce.get("krom_content_translation_en");
+                    if (editor) {
+                        editor.theme.resizeTo("100%", 300);
+                    }
+                }
+            }, 1000);
+        });
+    </script>';
 }
 add_action('admin_head', 'krom_add_translation_metabox_styles');
+
+/**
+ * Disable metabox interface for translation boxes
+ */
+function krom_disable_metabox_interface() {
+    global $current_screen;
+    
+    if ($current_screen->base === 'post') {
+        echo '<style type="text/css">
+            /* Only disable moving, but keep toggle functionality */
+            #krom_title_translation_en h2.hndle, 
+            #krom_content_translation_en h2.hndle {
+                cursor: pointer !important;
+            }
+            
+            /* Make sure the editor has sufficient padding */
+            #krom_content_translation_en .inside {
+                padding: 0;
+                margin: 0;
+            }
+            
+            /* Fix toolbar appearance */
+            #wp-krom_content_translation_en-editor-tools {
+                background-color: #f5f5f5;
+                padding: 6px 10px;
+                border-bottom: 1px solid #e2e4e7;
+            }
+            
+            /* Ensure consistent button styling */
+            #wp-krom_content_translation_en-media-buttons {
+                float: left;
+            }
+            
+            /* Better editor height */
+            #wp-krom_content_translation_en-editor-container iframe {
+                min-height: 300px;
+            }
+        </style>';
+    }
+}
+add_action('admin_head', 'krom_disable_metabox_interface');
+
+/**
+ * Ensure TinyMCE editor is properly initialized
+ */
+function krom_ensure_editor_init() {
+    global $current_screen;
+    
+    if ($current_screen->base === 'post') {
+        echo '<script type="text/javascript">
+            jQuery(document).ready(function($) {
+                // Re-init editors if needed
+                $(document).on("click", ".wp-editor-tabs button", function() {
+                    var $wrap = $(this).closest(".wp-editor-wrap");
+                    var editorId = $wrap.find("textarea").attr("id");
+                    
+                    if ($(this).hasClass("switch-tmce") && editorId) {
+                        if (typeof tinymce !== "undefined") {
+                            tinymce.execCommand("mceRemoveEditor", false, editorId);
+                            tinymce.execCommand("mceAddEditor", false, editorId);
+                        }
+                    }
+                });
+            });
+        </script>';
+    }
+}
+add_action('admin_footer', 'krom_ensure_editor_init');
+
+/**
+ * Fix "View Post" link in admin
+ */
+function krom_fix_admin_view_link($permalink, $post) {
+    // Only modify in admin
+    if (!is_admin()) {
+        return $permalink;
+    }
+    
+    // Get default language for admin preview
+    $lang = KROM_TRANSLATION_DEFAULT_LANG;
+    
+    // If permalink doesn't already contain language code
+    if (!preg_match('~^' . home_url('/' . $lang . '/') . '~', $permalink)) {
+        // Add language code to URL
+        $permalink = str_replace(home_url('/'), home_url('/' . $lang . '/'), $permalink);
+    }
+    
+    return $permalink;
+}
+add_filter('preview_post_link', 'krom_fix_admin_view_link', 10, 2);
+add_filter('get_sample_permalink_html', function($html, $post_id, $title, $slug, $post) {
+    $permalink = get_permalink($post);
+    $lang = KROM_TRANSLATION_DEFAULT_LANG;
+    
+    // Make sure language code is in the permalink
+    if (!preg_match('~/' . $lang . '/~', $permalink)) {
+        $permalink = str_replace(home_url('/'), home_url('/' . $lang . '/'), $permalink);
+    }
+    
+    // Update the "View Post" link HTML
+    $html = preg_replace('~href="([^"]+)"~', 'href="' . $permalink . '"', $html);
+    
+    return $html;
+}, 10, 5);
 
 // Remove functions that are no longer needed
 remove_action('edit_form_after_title', 'krom_add_admin_language_switcher');

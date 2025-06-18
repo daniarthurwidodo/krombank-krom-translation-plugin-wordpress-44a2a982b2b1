@@ -98,20 +98,32 @@ function krom_language_switcher_shortcode($atts) {
 }
 
 /**
- * URL rewrite rules for language prefixes
+ * Add language rewrite rules
  */
 function krom_add_language_rewrite_rules() {
-    // Homepage rules for both languages (including default)
-    add_rewrite_rule('^en/?$', 'index.php?lang=en', 'top');
-    add_rewrite_rule('^id/?$', 'index.php?lang=id', 'top');
+    // Languages we support
+    $languages = array('en', 'id');
     
-    // Post types and other pages rules
-    add_rewrite_rule('^en/(.+?)/?$', 'index.php?pagename=$matches[1]&lang=en', 'top');
-    add_rewrite_rule('^id/(.+?)/?$', 'index.php?pagename=$matches[1]&lang=id', 'top');
+    // Add rewrite rules for each language
+    foreach ($languages as $lang) {
+        // Homepage with language code
+        add_rewrite_rule('^' . $lang . '/?$', 'index.php?lang=' . $lang, 'top');
+        
+        // Posts and pages with language code
+        add_rewrite_rule('^' . $lang . '/(.?.+?)(?:/([0-9]+))?/?$', 'index.php?lang=' . $lang . '&name=$matches[1]&page=$matches[2]', 'top');
+        
+        // Custom post types with language code
+        add_rewrite_rule('^' . $lang . '/([^/]+)/([^/]+)/?$', 'index.php?lang=' . $lang . '&post_type=$matches[1]&name=$matches[2]', 'top');
+        
+        // Categories with language code
+        add_rewrite_rule('^' . $lang . '/category/(.+?)/?$', 'index.php?lang=' . $lang . '&category_name=$matches[1]', 'top');
+        
+        // Tags with language code
+        add_rewrite_rule('^' . $lang . '/tag/(.+?)/?$', 'index.php?lang=' . $lang . '&tag=$matches[1]', 'top');
+    }
     
-    // Category and taxonomy rules
-    add_rewrite_rule('^en/category/(.+?)/?$', 'index.php?category_name=$matches[1]&lang=en', 'top');
-    add_rewrite_rule('^id/category/(.+?)/?$', 'index.php?category_name=$matches[1]&lang=id', 'top');
+    // Add query var for language
+    add_rewrite_tag('%lang%', '([^/]+)');
 }
 add_action('init', 'krom_add_language_rewrite_rules');
 
@@ -211,3 +223,68 @@ function krom_debug_get_current_language() {
     echo '</div>';
 }
 add_action('wp_footer', 'krom_debug_get_current_language');
+
+/**
+ * Filter post permalinks to include language
+ */
+function krom_filter_post_link($permalink, $post) {
+    // Don't modify admin URLs
+    if (is_admin() && !wp_doing_ajax()) {
+        return $permalink;
+    }
+    
+    // Get current language
+    $current_lang = krom_get_current_language();
+    
+    // If permalink doesn't already contain language code
+    if (!preg_match('~^' . home_url('/' . $current_lang . '/') . '~', $permalink)) {
+        // Add language code to URL
+        $permalink = str_replace(home_url('/'), home_url('/' . $current_lang . '/'), $permalink);
+    }
+    
+    return $permalink;
+}
+add_filter('post_link', 'krom_filter_post_link', 10, 2);
+add_filter('page_link', 'krom_filter_post_link', 10, 2);
+add_filter('post_type_link', 'krom_filter_post_link', 10, 2);
+
+/**
+ * Add language switcher to single posts
+ */
+function krom_add_post_language_switcher($content) {
+    // Only add to single posts
+    if (!is_singular()) {
+        return $content;
+    }
+    
+    // Get current post ID
+    $post_id = get_the_ID();
+    if (!$post_id) {
+        return $content;
+    }
+    
+    // Get current language
+    $current_lang = krom_get_current_language();
+    
+    // Build language switcher HTML
+    $switcher = '<div class="krom-post-language-switcher" style="margin-bottom: 20px; text-align: right;">';
+    $switcher .= '<strong>Language: </strong>';
+    
+    // Indonesian link
+    $id_url = get_permalink($post_id);
+    $id_url = str_replace(home_url('/' . $current_lang . '/'), home_url('/id/'), $id_url);
+    $id_class = $current_lang === 'id' ? 'current' : '';
+    $switcher .= '<a href="' . esc_url($id_url) . '" class="' . $id_class . '" style="margin-right: 10px; ' . ($current_lang === 'id' ? 'font-weight: bold;' : '') . '">Indonesia</a>';
+    
+    // English link
+    $en_url = get_permalink($post_id);
+    $en_url = str_replace(home_url('/' . $current_lang . '/'), home_url('/en/'), $en_url);
+    $en_class = $current_lang === 'en' ? 'current' : '';
+    $switcher .= '<a href="' . esc_url($en_url) . '" class="' . $en_class . '" style="' . ($current_lang === 'en' ? 'font-weight: bold;' : '') . '">English</a>';
+    
+    $switcher .= '</div>';
+    
+    // Append to content
+    return $switcher . $content;
+}
+add_filter('the_content', 'krom_add_post_language_switcher', 5); // Lower priority to ensure it runs before content translation
